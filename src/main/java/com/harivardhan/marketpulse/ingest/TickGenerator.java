@@ -1,6 +1,7 @@
 package com.harivardhan.marketpulse.ingest;
 
 import com.harivardhan.marketpulse.model.Tick;
+import com.harivardhan.marketpulse.store.TickStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,9 +18,11 @@ public class TickGenerator {
     private static final  List<String> SYMBOLS = List.of("AAPL", "GOOGL", "TSLA", "MSFT", "AMZN");
 
     private final BlockingQueue<Tick> tickQueue;
+    private final TickStore tickStore;
 
-    public TickGenerator(BlockingQueue<Tick> tickQueue){
+    public TickGenerator(BlockingQueue<Tick> tickQueue, TickStore tickStore){
         this.tickQueue = tickQueue;
+        this.tickStore = tickStore;
     }
 
     @Scheduled(fixedRate = 500)
@@ -32,7 +35,8 @@ public class TickGenerator {
 
         try{
             tickQueue.put(tick);
-            log.info("Produced tick: {} (queue.size: {}",tick, tickQueue.size());
+            tickStore.add(tick);
+            log.debug("Stored tick: {} (window.size: {})",tick, tickStore.size(tick.symbol()));
         } catch(InterruptedException e){
             Thread.currentThread().interrupt();
             log.info("Interrupted while putting tick", e);
